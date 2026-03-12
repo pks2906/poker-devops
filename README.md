@@ -1,168 +1,306 @@
-# Poker Platform
+# Poker Microservices Platform – DevOps CI/CD Deployment
 
-A multiplayer Texas Hold'em poker platform built with modern web technologies.
+This repository contains a **containerized microservices poker platform** along with a complete **DevOps CI/CD pipeline and Kubernetes deployment setup**.
 
-## Tech Stack
+The original poker application was developed by another contributor and this repository is a **fork** of that project.  
+My contributions focus on **DevOps infrastructure, containerization, CI/CD automation, and Kubernetes deployment**.
 
-- **Backend**: BunJS + Hono
-- **Database**: PostgreSQL + Drizzle ORM
-- **Real-time**: WebSocket (ws library)
-- **Frontend**: React + Tailwind CSS + shadcn/ui
-- **Monorepo**: Turborepo
+---
 
-## Architecture
+# Architecture
 
+```text
+Developer Push
+     │
+     ▼
+   GitHub Repository
+     │
+     ▼
+   Jenkins CI/CD Pipeline
+     │
+     ├── Build Docker Images
+     │
+     ├── Push Images → DockerHub
+     │
+     ▼
+Kubernetes Deployment (Minikube)
+     │
+     ▼
+NGINX Ingress Controller
+     │
+     ├── poker.local  → User Frontend
+     │
+     ├── admin.poker.local → Admin Frontend
+     │
+     ▼
+Backend API  ←→  WebSocket Server
+     │
+     ▼
+PostgreSQL (StatefulSet + Persistent Volume)
 ```
-poker/
-├── apps/
-│   ├── admin-frontend/   # Admin dashboard (React)
-│   ├── user-frontend/    # Player interface (React)
-│   ├── backend/          # REST API (Bun + Hono)
-│   └── websocket/        # Game server (Bun + ws)
-└── packages/
-    ├── db/               # Database schema (Drizzle)
-    ├── types/            # Shared TypeScript types
-    └── ui/               # Shared UI components
-```
 
-## Features
+This architecture enables **automated deployment of a multi-service platform using CI/CD pipelines and Kubernetes orchestration.**
 
-### Game
-- Texas Hold'em No-Limit poker
-- 2-9 players per table
-- 30-second turn timer (auto-fold on timeout)
-- Real-time gameplay via WebSockets
-- Hand evaluation and pot distribution
+---
 
-### Admin
-- Create and configure rooms (blinds, buy-in limits)
-- Manage room status (open/closed)
-- User management (promote/demote admins)
+# Microservices
 
-### Users
-- Registration with 50,000 chips signup bonus
-- View and join active tables
-- Minimum 3 big blinds required to join a table
-- Buy-in selection when joining tables
+The platform consists of the following services:
 
-## Getting Started
+- Backend API
+- WebSocket server
+- User frontend
+- Admin frontend
+- PostgreSQL database
 
-### Prerequisites
+All services are **containerized using Docker** and deployed on **Kubernetes**.
 
-- [Bun](https://bun.sh) >= 1.0
-- PostgreSQL >= 14
+---
 
-### Setup
+# DevOps Features Implemented
 
-1. **Clone and install dependencies**
-   ```bash
-   cd poker
-   bun install
-   ```
+### CI/CD Pipeline (Jenkins)
 
-2. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your database credentials
-   ```
+A Jenkins pipeline was implemented to automate the entire workflow.
 
-3. **Create the database**
-   ```bash
-   createdb poker
-   ```
+Pipeline stages:
 
-4. **Run database migrations**
-   ```bash
-   bun run db:push
-   ```
+1. Clone repository from GitHub
+2. Build Docker images for all services
+3. Push images to DockerHub
+4. Deploy services to Kubernetes using `kubectl`
 
-5. **Create an admin user**
+This creates a **fully automated build → push → deploy pipeline**.
 
-   Register a user through the user frontend, then manually set `is_admin = true` in the database:
-   ```sql
-   UPDATE users SET is_admin = true WHERE email = 'your@email.com';
-   ```
+---
 
-### Development
+### Containerization (Docker)
 
-Run all services in development mode:
+All application services were containerized using **Docker**.
+
+Services containerized:
+
+- backend
+- websocket
+- user-frontend
+- admin-frontend
+
+Docker Compose is used to run the entire system locally for development.
+
+---
+
+### Kubernetes Deployment
+
+The application is deployed on **Kubernetes (Minikube)** using:
+
+- Deployments
+- Services
+- StatefulSets
+- Ingress
+- Persistent Volumes
+- Persistent Volume Claims
+
+This provides **scalable orchestration and service discovery**.
+
+---
+
+### Persistent Database Storage
+
+PostgreSQL is deployed using a **StatefulSet** with persistent storage.
+
+Components used:
+
+- Persistent Volume (PV)
+- Persistent Volume Claim (PVC)
+
+This ensures:
+
+- durable storage
+- stable pod identity
+- safe database restarts
+
+---
+
+### Ingress Routing
+
+An **NGINX Ingress Controller** routes external traffic to services.
+
+Example routing:
+
+| Host | Service |
+|-----|------|
+| poker.local | User Frontend |
+| admin.poker.local | Admin Frontend |
+
+This creates a **single entry point for external traffic into the cluster**.
+
+---
+
+# Tech Stack
+
+| Category | Technology |
+|--------|-------------|
+| CI/CD | Jenkins |
+| Containers | Docker |
+| Container Registry | DockerHub |
+| Orchestration | Kubernetes (Minikube) |
+| Database | PostgreSQL |
+| Networking | NGINX Ingress |
+| Runtime | Bun / Node.js |
+
+---
+
+# Running the Project Locally
+
+## 1. Clone the repository
+
 ```bash
-bun run dev
+git clone https://github.com/pks2906/poker-devops.git
+cd poker-devops
 ```
 
-Or run individual services:
+---
+
+## 2. Run services with Docker Compose
+
 ```bash
-# Backend API (port 3000)
-cd apps/backend && bun run dev
-
-# WebSocket server (port 3001)
-cd apps/websocket && bun run dev
-
-# User frontend (port 5173)
-cd apps/user-frontend && bun run dev
-
-# Admin frontend (port 5174)
-cd apps/admin-frontend && bun run dev
+docker compose up -d
 ```
 
-### URLs
+This starts:
 
-- User Frontend: http://localhost:5173
-- Admin Frontend: http://localhost:5174
-- Backend API: http://localhost:3000
-- WebSocket: ws://localhost:3001
+- backend
+- websocket
+- user frontend
+- admin frontend
+- postgres
 
-## API Endpoints
+---
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login
+## 3. Start Kubernetes cluster
 
-### Rooms
-- `GET /api/rooms` - List active rooms
-- `GET /api/rooms/:id` - Get room details
-- `POST /api/rooms/:id/join` - Join a room (requires auth)
-- `POST /api/rooms/:id/leave` - Leave a room (requires auth)
+```bash
+minikube start
+```
 
-### Users
-- `GET /api/users/me` - Get current user profile
-- `GET /api/users/transactions` - Get transaction history
+Enable ingress:
 
-### Admin
-- `GET /api/admin/rooms` - List all rooms
-- `POST /api/admin/rooms` - Create room
-- `PATCH /api/admin/rooms/:id` - Update room status
-- `DELETE /api/admin/rooms/:id` - Delete room
-- `GET /api/admin/users` - List all users
-- `PATCH /api/admin/users/:id/admin` - Toggle admin status
+```bash
+minikube addons enable ingress
+```
 
-## WebSocket Messages
+---
 
-### Client -> Server
-- `auth` - Authenticate with JWT token
-- `join_room` - Join a room
-- `leave_room` - Leave current room
-- `player_action` - Send game action (fold/check/call/raise/all-in)
+## 4. Deploy to Kubernetes
 
-### Server -> Client
-- `auth_success` - Authentication successful
-- `joined_room` - Successfully joined room
-- `game_state` - Current game state
-- `new_round` - New hand started
-- `player_turn` - It's a player's turn
-- `action_result` - Action was processed
-- `timer_update` - Turn timer update
-- `hand_result` - Hand finished with results
-- `error` - Error message
+```bash
+kubectl apply -f k8s/
+```
 
-## Database Schema
+Verify deployment:
 
-- **users** - User accounts with balance
-- **rooms** - Poker tables with configuration
-- **table_players** - Players currently at tables
-- **transactions** - Buy-in/cash-out/win records
-- **game_history** - Completed hand records
+```bash
+kubectl get pods -n poker
+```
 
-## License
+---
 
-MIT
+## 5. Configure local hosts
+
+Edit the hosts file:
+
+```bash
+sudo nano /etc/hosts
+```
+
+Add:
+
+```
+$(minikube ip) poker.local
+$(minikube ip) admin.poker.local
+```
+
+---
+
+## 6. Access the application
+
+Open in browser:
+
+```
+http://poker.local
+http://admin.poker.local
+```
+
+---
+
+# CI/CD Pipeline
+
+The Jenkins pipeline automatically performs:
+
+1. Checkout repository
+2. Build Docker images
+3. Push images to DockerHub
+4. Deploy application to Kubernetes
+
+Pipeline configuration is stored in:
+
+```
+Jenkinsfile
+```
+
+---
+
+# Docker Images
+
+Images built and pushed to DockerHub:
+
+```
+pks2906/poker-backend
+pks2906/poker-websocket
+pks2906/poker-user-frontend
+pks2906/poker-admin-frontend
+```
+
+---
+
+# My DevOps Contributions
+
+In this forked repository, I implemented:
+
+- Docker containerization for all services
+- Docker Compose development environment
+- Kubernetes manifests for deployments and services
+- PostgreSQL StatefulSet with persistent storage
+- NGINX ingress configuration
+- Jenkins CI/CD pipeline
+- Automated Docker image builds and pushes
+- Kubernetes automated deployment pipeline
+
+---
+
+# Learning Outcomes
+
+Through this project I gained hands-on experience with:
+
+- CI/CD pipeline design
+- containerized microservices architecture
+- Kubernetes orchestration
+- infrastructure automation
+- DevOps troubleshooting and debugging
+
+---
+
+# Future Improvements
+
+Planned improvements include:
+
+- Helm charts for Kubernetes deployments
+- GitHub webhook integration with Jenkins
+- Prometheus + Grafana monitoring
+- Deployment to cloud Kubernetes platforms (AWS EKS)
+
+---
+
+# License
+
+This repository is a fork of the original project and is used for **educational and DevOps learning purposes**.

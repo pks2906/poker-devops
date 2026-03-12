@@ -4,12 +4,6 @@ agent any
 
 stages {
 
-    stage('Clone Repository') {
-        steps {
-            git 'https://github.com/pks2906/poker-devops.git'
-        }
-    }
-
     stage('Build Docker Images') {
         steps {
             sh 'docker build -t pks2906/poker-backend -f docker/backend.Dockerfile .'
